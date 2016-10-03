@@ -59,11 +59,10 @@ namespace RMateSync
             // dp("dd1");
             using (NetworkStream stream = client.GetStream())
             using(StreamWriter sw = new StreamWriter(stream))
-            using (StreamReader sr = new StreamReader(stream))
             {
                 sw.WriteLine("MyServer Name");
                 sw.Flush();
-                ConnectionHandler handler = new ConnectionHandler(client, stream, sr, sw);
+                ConnectionHandler handler = new ConnectionHandler(client, stream, sw);
                 handler.DoProcesss();
 
                 /*

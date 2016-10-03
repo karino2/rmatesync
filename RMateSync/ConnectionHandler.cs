@@ -15,7 +15,7 @@ namespace RMateSync
         ILineReader _reader;
         StreamWriter _writer;
         NetworkStream _stream;
-        public ConnectionHandler(TcpClient client, NetworkStream ns, StreamReader sr, StreamWriter sw)
+        public ConnectionHandler(TcpClient client, NetworkStream ns, StreamWriter sw)
         {
             _client = client;
             _reader = new UnbufferedStreamReader(ns);
