@@ -17,15 +17,24 @@ namespace RMateSync
 
     class FileOpener
     {
-        // string openExe = "code";
         public void Open(FileInfo path)
         {
-            // Process.Start(openExe, "-r \"" + path.FullName + "\"");
-            // Process.Start(@"C:\Users\_\bin\xyzzycli.exe.lnk", "\"" + path.FullName + "\"");
+            var settings = Settings.Create();
+
+
+
             var proc = new Process();
-            proc.StartInfo.FileName = @"C:\Users\_\bin\xyzzycli.exe.lnk";
-            proc.StartInfo.Arguments = "\"" + path.FullName + "\"";
+            proc.StartInfo.FileName = settings.ReadEditorPath();
+            proc.StartInfo.Arguments = BuildArguments(settings.ReadEditorArgs(), path.FullName);
             proc.Start();
+        }
+
+        string BuildArguments(string args, string pathname)
+        {
+            if (String.IsNullOrEmpty(args))
+                return "\"" + pathname + "\"";
+            return args + " \"" + pathname + "\"";
+
         }
     }
 
