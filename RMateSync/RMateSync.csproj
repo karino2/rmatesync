@@ -59,6 +59,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="FileItem.cs" />
+    <Compile Include="Store.cs" />
     <Compile Include="ICommand.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="UnbufferedStreamReader.cs" />

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LiteDB;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -41,9 +42,11 @@ namespace RMateSync
     class FileSaver
     {
         DirectoryInfo _baseDir;
-        public FileSaver(DirectoryInfo basedir)
+        Store _store;
+        public FileSaver(DirectoryInfo basedir, Store store)
         {
             _baseDir = basedir;
+            _store = store;
         }
 
         String ServerName(IDictionary<string, string> options)
@@ -62,27 +65,32 @@ namespace RMateSync
         }
 
 
-        public FileInfo Save(OpenCommand data)
+        public Tuple<FileInfo, string> Save(OpenCommand data)
         {
             DirectoryInfo serverDir = new DirectoryInfo(Path.Combine(_baseDir.FullName, ServerName(data.Options)));
             EnsureDir(serverDir);
+            _store.SaveServer(serverDir);
 
+            var realpath = data.Options["real-path"];
             // cut first / .
-            FileInfo savepath = new FileInfo(Path.Combine(serverDir.FullName, data.Options["real-path"].Substring(1)));
+            FileInfo savepath = new FileInfo(Path.Combine(serverDir.FullName, realpath.Substring(1)));
 
             EnsureDir(savepath.Directory);
+            if (savepath.Exists)
+                savepath.Delete();
+
             using (var writer = savepath.OpenWrite())
             {
                 data.Contents.WriteTo(writer);
             }
 
-            return savepath;
+            return new Tuple<FileInfo, string>(savepath, realpath);
         }
 
 
-        public static FileSaver Create()
+        public static FileSaver Create(Store store)
         {
-            return new RMateSync.FileSaver(new DirectoryInfo(Environment.CurrentDirectory));
+            return new RMateSync.FileSaver(new DirectoryInfo(Environment.CurrentDirectory), store);
         }
     }
 
@@ -92,6 +100,7 @@ namespace RMateSync
         {
             PARSE_PARAM,
             PARSE_DATA,
+            SKIP_DOT,
             SAVE_AND_OPEN,
             FINISH
         }
@@ -103,14 +112,16 @@ namespace RMateSync
         MemoryStream _data = new MemoryStream();
         State _state = State.PARSE_PARAM;
         Dictionary<String, String> _options = new Dictionary<string, string>();
+        Store _store;
 
         public IDictionary<String, String> Options {  get { return _options;  } }
         public MemoryStream Contents {  get { return _data;  } }
 
-        public OpenCommand(ILineReader sr, NetworkStream ns)
+        public OpenCommand(ILineReader sr, NetworkStream ns, Store store)
         {
             _reader = sr;
             _stream = ns;
+            _store = store;
             DataLength = 0;
         }
 
@@ -181,7 +192,7 @@ namespace RMateSync
                 sizeRead += count;
             }
 
-            _state = State.SAVE_AND_OPEN;
+            _state = State.SKIP_DOT;
         }
 
         public void ReadAndEvalOne()
@@ -194,6 +205,10 @@ namespace RMateSync
                 case State.PARSE_DATA:
                     ReadData();
                     return;
+                case State.SKIP_DOT:
+                    _reader.ReadLine(); // discard last .\n
+                    _state = State.SAVE_AND_OPEN;
+                    return;
                 case State.SAVE_AND_OPEN:
                     SaveAndOpen();
                     return;
@@ -204,11 +219,15 @@ namespace RMateSync
 
         private void SaveAndOpen()
         {
-            var saver = FileSaver.Create();
-            var path = saver.Save(this);
+            var saver = FileSaver.Create(_store);
+            var pathtupple = saver.Save(this);
+
+            var fitem = new FileItem { Path = pathtupple.Item1.FullName, RealPath = pathtupple.Item2, LastWrite = DateTime.Now };
+            _store.SaveFileItem(fitem);
+
 
             var opener = new FileOpener();
-            opener.Open(path);
+            opener.Open(pathtupple.Item1);
 
             _state = State.FINISH;
         }

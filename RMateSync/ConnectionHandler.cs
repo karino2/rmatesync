@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LiteDB;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,12 +16,15 @@ namespace RMateSync
         ILineReader _reader;
         StreamWriter _writer;
         NetworkStream _stream;
-        public ConnectionHandler(TcpClient client, NetworkStream ns, StreamWriter sw)
+        Store _store;
+
+        public ConnectionHandler(TcpClient client, NetworkStream ns, StreamWriter sw, Store store)
         {
             _client = client;
             _reader = new UnbufferedStreamReader(ns);
             _stream = ns;
             _writer = sw;
+            _store = store;
         }
 
         public void DoProcesss()
@@ -28,11 +32,11 @@ namespace RMateSync
             String msg = _reader.ReadLine();
             Debug.WriteLine(msg); // "open"
 
-            var cmd = new OpenCommand(_reader, _stream);
+            var cmd = new OpenCommand(_reader, _stream, _store);
             while(!cmd.IsFinish)
             {
                 cmd.ReadAndEvalOne();
-                Debug.WriteLine(cmd.DebToString());
+                // Debug.WriteLine(cmd.DebToString());
             }
             Debug.WriteLine("done");
 
