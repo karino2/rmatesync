@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
@@ -14,6 +15,67 @@ namespace RMateSync
         bool IsFinish { get;  }
     }
 
+    class FileOpener
+    {
+        // string openExe = "code";
+        public void Open(FileInfo path)
+        {
+            // Process.Start(openExe, "-r \"" + path.FullName + "\"");
+            // Process.Start(@"C:\Users\_\bin\xyzzycli.exe.lnk", "\"" + path.FullName + "\"");
+            var proc = new Process();
+            proc.StartInfo.FileName = @"C:\Users\_\bin\xyzzycli.exe.lnk";
+            proc.StartInfo.Arguments = "\"" + path.FullName + "\"";
+            proc.Start();
+        }
+    }
+
+    class FileSaver
+    {
+        DirectoryInfo _baseDir;
+        public FileSaver(DirectoryInfo basedir)
+        {
+            _baseDir = basedir;
+        }
+
+        String ServerName(IDictionary<string, string> options)
+        {
+            String dispName = options["display-name"];
+            var seps = dispName.Split(':');
+            if (seps.Length > 1)
+                return seps[0];
+            return dispName;
+        }
+
+        void EnsureDir(DirectoryInfo dir)
+        {
+            if (!dir.Exists)
+                dir.Create();
+        }
+
+
+        public FileInfo Save(OpenCommand data)
+        {
+            DirectoryInfo serverDir = new DirectoryInfo(Path.Combine(_baseDir.FullName, ServerName(data.Options)));
+            EnsureDir(serverDir);
+
+            // cut first / .
+            FileInfo savepath = new FileInfo(Path.Combine(serverDir.FullName, data.Options["real-path"].Substring(1)));
+
+            EnsureDir(savepath.Directory);
+            using (var writer = savepath.OpenWrite())
+            {
+                data.Contents.WriteTo(writer);
+            }
+
+            return savepath;
+        }
+
+
+        public static FileSaver Create()
+        {
+            return new RMateSync.FileSaver(new DirectoryInfo(Environment.CurrentDirectory));
+        }
+    }
 
     class OpenCommand : ICommand
     {
@@ -21,6 +83,7 @@ namespace RMateSync
         {
             PARSE_PARAM,
             PARSE_DATA,
+            SAVE_AND_OPEN,
             FINISH
         }
 
@@ -31,6 +94,9 @@ namespace RMateSync
         MemoryStream _data = new MemoryStream();
         State _state = State.PARSE_PARAM;
         Dictionary<String, String> _options = new Dictionary<string, string>();
+
+        public IDictionary<String, String> Options {  get { return _options;  } }
+        public MemoryStream Contents {  get { return _data;  } }
 
         public OpenCommand(ILineReader sr, NetworkStream ns)
         {
@@ -106,7 +172,7 @@ namespace RMateSync
                 sizeRead += count;
             }
 
-            _state = State.FINISH;
+            _state = State.SAVE_AND_OPEN;
         }
 
         public void ReadAndEvalOne()
@@ -119,12 +185,24 @@ namespace RMateSync
                 case State.PARSE_DATA:
                     ReadData();
                     return;
+                case State.SAVE_AND_OPEN:
+                    SaveAndOpen();
+                    return;
                 case State.FINISH:
                     return;
             }
         }
 
+        private void SaveAndOpen()
+        {
+            var saver = FileSaver.Create();
+            var path = saver.Save(this);
 
+            var opener = new FileOpener();
+            opener.Open(path);
+
+            _state = State.FINISH;
+        }
     }
 
 
