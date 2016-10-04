@@ -8,8 +8,11 @@
         Loaded="Window_Loaded"
         Title="MainWindow" Height="350" Width="525">
     <Grid>
-        <Button x:Name="buttonRun" Content="Run" HorizontalAlignment="Left" Margin="64,33,0,0" VerticalAlignment="Top" Width="75" Click="buttonRun_Click"/>
-        <TextBox x:Name="debugBox" HorizontalAlignment="Left" Height="199" Margin="0,110,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="507"/>
-
+        <Button x:Name="buttonRun" Content="Debug" HorizontalAlignment="Left" Margin="64,33,0,0" VerticalAlignment="Top" Width="75" Click="buttonRun_Click"/>
+        <TextBox x:Name="debugBox" HorizontalAlignment="Left" Height="199" Margin="0,110,0,0"
+                            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    ScrollViewer.CanContentScroll="True"
+                    TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="507"/>
     </Grid>
 </Window>

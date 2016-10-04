@@ -196,7 +196,7 @@ namespace RMateSync
 
         private void debugWrite(string msg)
         {
-            Dispatcher.Invoke(() => debugBox.Text += msg);
+            Dispatcher.Invoke(() => debugBox.Text = msg + debugBox.Text);
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
