@@ -124,24 +124,31 @@ namespace RMateSync
             return new LiteDatabase("Files.db");
         }
 
-        void test1()
+        void serverLoop()
         {
 
-            dp("test1 start");
-            var listener = new TcpListener(IPAddress.Loopback, PORT_NUM);
-            using (var db = CreateDBInstance())
+            dp("server loop start");
+            try
             {
-                var store = new Store(db);
-
-                listener.Start();
-                while (true)
+                var listener = new TcpListener(IPAddress.Loopback, PORT_NUM);
+                using (var db = CreateDBInstance())
                 {
-                    var client = listener.AcceptTcpClient();
-                    DebugDump(client, store);
-                    CheckNewServer(store);
+                    var store = new Store(db);
 
-                    Thread.Sleep(100);
+                    listener.Start();
+                    while (true)
+                    {
+                        var client = listener.AcceptTcpClient();
+                        DebugDump(client, store);
+                        CheckNewServer(store);
+
+                        Thread.Sleep(100);
+                    }
                 }
+            }catch(Exception e)
+            {
+                dp("server loop exit. Please relaunch manually.");
+                dp("reason: " + e.Message);
             }
         }
 
@@ -201,7 +208,7 @@ namespace RMateSync
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            Task.Run(() => test1());
+            Task.Run(() => serverLoop());
         }
     }
 }
